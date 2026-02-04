@@ -12,7 +12,7 @@ class ClayloRs < Formula
   depends_on "copier"
 
   def install
-    bin.install "claylo-rs/bin/claylo-rs"
+    bin.install "bin/claylo-rs"
   end
 
   def caveats
