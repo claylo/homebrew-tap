@@ -4,26 +4,26 @@
 class BitoLint < Formula
   desc "Quality gate tooling for building-in-the-open artifacts"
   homepage "https://github.com/claylo/bito-lint"
-  version "0.1.4"
+  version "0.1.5"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/claylo/bito-lint/releases/download/v#{version}/bito-lint-#{version}-aarch64-apple-darwin.tar.gz"
-      sha256 "70b50fd38d4709c48151b680f507cc8513df2d740d50eb46ec07d643b0a7e851"
+      sha256 "fa2ee8e96b43e4df2bc9fb45335ae3c2e3c5e6ef8b7173aff943389846981097"
     else
       url "https://github.com/claylo/bito-lint/releases/download/v#{version}/bito-lint-#{version}-x86_64-apple-darwin.tar.gz"
-      sha256 "f3754d6ed7d8bf03c4a5a46442f16e569f39bbd1d8d9a6cc288d4ed33b4272cc"
+      sha256 "50c094c46236d06267b51fbd2901ac8313f0855def16e680b1a8423b589b2757"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/claylo/bito-lint/releases/download/v#{version}/bito-lint-#{version}-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "7a1676aa471deda1394cb0c1cd4904f4f5e978305eb706a231f79ab998db95fe"
+      sha256 "fbbf9d298a56a4c8edbab9a6786255d38eade9c6c086501f7180d4e9d55204c7"
     else
       url "https://github.com/claylo/bito-lint/releases/download/v#{version}/bito-lint-#{version}-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "fbc9ca6ac81b0387e054a169ff5ee97ac6dd1e423cabd47d94f54e24a115ada5"
+      sha256 "494dc226ffb40b2a0f015bed59931a630d344db271a8aabbe89c5e3c9919de22"
     end
   end
 
