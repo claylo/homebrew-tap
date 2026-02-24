@@ -4,8 +4,8 @@
 class ClayloRs < Formula
   desc "Production-ready Rust CLI scaffolding with updatable templates"
   homepage "https://github.com/claylo/claylo-rs"
-  url "https://github.com/claylo/claylo-rs/archive/refs/tags/v1.0.0-beta.1.tar.gz"
-  sha256 "d52c37da853c9024ad610c4cb160bdc03cccdb8e3854a3c500b33918318a7d9d"
+  url "https://github.com/claylo/claylo-rs/archive/refs/tags/v1.0.0-beta.2.tar.gz"
+  sha256 "33a0fef00fcd46c553695c97ab37f285a440e0a383930aeac7c164b7488e6dec"
   license "MIT"
 
   depends_on "bash" => :build
