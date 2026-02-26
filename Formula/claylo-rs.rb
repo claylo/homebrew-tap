@@ -12,6 +12,7 @@ class ClayloRs < Formula
   depends_on "copier"
 
   def install
+    inreplace "bin/claylo-rs", 'VERSION="devel"', "VERSION=\"#{version}\""
     bin.install "bin/claylo-rs"
   end
 
