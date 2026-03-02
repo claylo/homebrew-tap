@@ -4,25 +4,25 @@
 class BitoLint < Formula
   desc "Quality gate tooling for building-in-the-open artifacts"
   homepage "https://github.com/claylo/bito-lint"
-  version "0.1.7"
+  version "0.2.0"
   license "Apache-2.0 OR MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/claylo/bito-lint/releases/download/v0.1.7/bito-lint-#{version}-aarch64-apple-darwin.tar.gz"
+      url "https://github.com/claylo/bito-lint/releases/download/v0.2.0/bito-lint-#{version}-aarch64-apple-darwin.tar.gz"
       sha256 ""
     else
-      url "https://github.com/claylo/bito-lint/releases/download/v0.1.7/bito-lint-#{version}-x86_64-apple-darwin.tar.gz"
+      url "https://github.com/claylo/bito-lint/releases/download/v0.2.0/bito-lint-#{version}-x86_64-apple-darwin.tar.gz"
       sha256 ""
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/claylo/bito-lint/releases/download/v0.1.7/bito-lint-#{version}-aarch64-unknown-linux-gnu.tar.gz"
+      url "https://github.com/claylo/bito-lint/releases/download/v0.2.0/bito-lint-#{version}-aarch64-unknown-linux-gnu.tar.gz"
       sha256 ""
     else
-      url "https://github.com/claylo/bito-lint/releases/download/v0.1.7/bito-lint-#{version}-x86_64-unknown-linux-gnu.tar.gz"
+      url "https://github.com/claylo/bito-lint/releases/download/v0.2.0/bito-lint-#{version}-x86_64-unknown-linux-gnu.tar.gz"
       sha256 ""
     end
   end
