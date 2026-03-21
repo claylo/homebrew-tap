@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Update a Homebrew formula for a new pre-release tag.
+#
+# Usage:
+#   ./update-formula claylo-rs v1.0.0-beta.5
+#   ./update-formula bito-lint v0.3.1
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FORMULA_DIR="${SCRIPT_DIR}/Formula"
+
+usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") <formula-name> <tag>
+
+Updates a Homebrew formula with a new GitHub release tag.
+
+Arguments:
+  formula-name   Name of the formula (e.g. claylo-rs, bito-lint)
+  tag            Git tag (e.g. v1.0.0-beta.5)
+
+Steps performed:
+  1. Downloads source archive from GitHub
+  2. Computes sha256
+  3. Updates url + sha256 in the formula
+  4. Commits and pushes to origin/main
+EOF
+    exit 1
+}
+
+[[ $# -eq 2 ]] || usage
+
+formula_name="$1"
+tag="$2"
+formula_file="${FORMULA_DIR}/${formula_name}.rb"
+
+if [[ ! -f "$formula_file" ]]; then
+    echo "Error: formula not found: ${formula_file}" >&2
+    exit 1
+fi
+
+# Extract owner/repo from the existing formula url line
+url_line=$(grep -m1 '^\s*url ' "$formula_file")
+if [[ "$url_line" =~ github\.com/([^/]+)/([^/]+)/archive ]]; then
+    owner="${BASH_REMATCH[1]}"
+    repo="${BASH_REMATCH[2]}"
+else
+    echo "Error: could not extract owner/repo from formula url" >&2
+    exit 1
+fi
+cd "${SCRIPT_DIR}" && git up
+
+archive_url="https://github.com/${owner}/${repo}/archive/refs/tags/${tag}.tar.gz"
+tmp_archive=$(mktemp /tmp/${formula_name}-XXXXXX.tar.gz)
+trap 'rm -f "$tmp_archive"' EXIT
+
+echo "Downloading ${archive_url} ..."
+if ! curl -fsSL -o "$tmp_archive" "$archive_url"; then
+    echo "Error: download failed — does tag ${tag} exist?" >&2
+    exit 1
+fi
+
+sha=$(shasum -a 256 "$tmp_archive" | awk '{print $1}')
+echo "sha256: ${sha}"
+
+# Strip leading v for the version string
+version="${tag#v}"
+
+# Update the formula
+# Use | as sed delimiter since urls contain /
+sed -i '' "s|^  url \".*\"|  url \"${archive_url}\"|" "$formula_file"
+sed -i '' "s|^  sha256 \".*\"|  sha256 \"${sha}\"|" "$formula_file"
+
+echo ""
+echo "Updated ${formula_file}:"
+grep -E '^\s*(url|sha256) ' "$formula_file"
+
+# Commit and push
+cd "$SCRIPT_DIR"
+git add "Formula/${formula_name}.rb"
+git commit -m "feat(${formula_name}): bump to ${version}"
+git push origin main
+
+echo ""
+echo "Done. Install/upgrade with:"
+echo "  brew upgrade ${formula_name}  # or: brew install claylo/tap/${formula_name}"

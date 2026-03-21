@@ -2,11 +2,11 @@
 
 Tap:
 
-  `brew tap claylo/brew`
+  `brew tap claylo/tap`
 
 Install a tool:
 
-  `brew install claylo/brew/<tool>`
+  `brew install claylo/tap/<tool>`
 
 Upgrade:
 
