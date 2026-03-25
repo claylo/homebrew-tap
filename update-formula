@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Update a Homebrew formula for a new pre-release tag.
+# Update a Homebrew formula for a new release tag.
 #
 # Usage:
-#   ./update-formula claylo-rs v1.0.0-beta.5
-#   ./update-formula bito-lint v0.3.1
+#   ./update-formula navel v1.2.0
+#   ./update-formula bito v1.1.0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FORMULA_DIR="${SCRIPT_DIR}/Formula"
@@ -17,14 +17,19 @@ Usage: $(basename "$0") <formula-name> <tag>
 Updates a Homebrew formula with a new GitHub release tag.
 
 Arguments:
-  formula-name   Name of the formula (e.g. claylo-rs, bito-lint)
-  tag            Git tag (e.g. v1.0.0-beta.5)
+  formula-name   Name of the formula (e.g. navel, bito)
+  tag            Git tag (e.g. v1.1.0)
+
+Handles two formula styles:
+  Simple     — single url + sha256 (source archive)
+  Multi-arch — platform-specific binaries with per-arch sha256
 
 Steps performed:
-  1. Downloads source archive from GitHub
-  2. Computes sha256
-  3. Updates url + sha256 in the formula
-  4. Commits and pushes to origin/main
+  1. Pulls latest from origin
+  2. Downloads release archive(s) from GitHub
+  3. Computes sha256 for each
+  4. Updates version, url(s), and sha256(s) in the formula
+  5. Writes commit.txt for review
 EOF
     exit 1
 }
@@ -33,6 +38,7 @@ EOF
 
 formula_name="$1"
 tag="$2"
+version="${tag#v}"
 formula_file="${FORMULA_DIR}/${formula_name}.rb"
 
 if [[ ! -f "$formula_file" ]]; then
@@ -40,48 +46,117 @@ if [[ ! -f "$formula_file" ]]; then
     exit 1
 fi
 
-# Extract owner/repo from the existing formula url line
-url_line=$(grep -m1 '^\s*url ' "$formula_file")
-if [[ "$url_line" =~ github\.com/([^/]+)/([^/]+)/archive ]]; then
-    owner="${BASH_REMATCH[1]}"
-    repo="${BASH_REMATCH[2]}"
-else
-    echo "Error: could not extract owner/repo from formula url" >&2
-    exit 1
-fi
 cd "${SCRIPT_DIR}" && git up
 
-archive_url="https://github.com/${owner}/${repo}/archive/refs/tags/${tag}.tar.gz"
-tmp_archive=$(mktemp /tmp/${formula_name}-XXXXXX.tar.gz)
-trap 'rm -f "$tmp_archive"' EXIT
-
-echo "Downloading ${archive_url} ..."
-if ! curl -fsSL -o "$tmp_archive" "$archive_url"; then
-    echo "Error: download failed — does tag ${tag} exist?" >&2
+# Count url lines to detect formula style
+url_count=$(grep -c '^[[:space:]]*url ' "$formula_file" || true)
+if [[ "$url_count" -eq 0 ]]; then
+    echo "Error: no url lines found in ${formula_file}" >&2
     exit 1
 fi
 
-sha=$(shasum -a 256 "$tmp_archive" | awk '{print $1}')
-echo "sha256: ${sha}"
+if [[ "$url_count" -eq 1 ]]; then
+    # --- Simple formula (single source archive) ---
+    echo "Simple formula (single url)"
 
-# Strip leading v for the version string
-version="${tag#v}"
+    # Extract owner/repo from the existing url line
+    url_line=$(grep -m1 '^[[:space:]]*url ' "$formula_file")
+    if [[ "$url_line" =~ github\.com/([^/]+)/([^/]+)/ ]]; then
+        owner="${BASH_REMATCH[1]}"
+        repo="${BASH_REMATCH[2]}"
+    else
+        echo "Error: could not extract owner/repo from formula url" >&2
+        exit 1
+    fi
 
-# Update the formula
-# Use | as sed delimiter since urls contain /
-sed -i '' "s|^  url \".*\"|  url \"${archive_url}\"|" "$formula_file"
-sed -i '' "s|^  sha256 \".*\"|  sha256 \"${sha}\"|" "$formula_file"
+    archive_url="https://github.com/${owner}/${repo}/archive/refs/tags/${tag}.tar.gz"
+    tmp_archive=$(mktemp "/tmp/${formula_name}-XXXXXX.tar.gz")
+    trap 'rm -f "$tmp_archive"' EXIT
+
+    echo "Downloading ${archive_url} ..."
+    if ! curl -fsSL -o "$tmp_archive" "$archive_url"; then
+        echo "Error: download failed — does tag ${tag} exist?" >&2
+        exit 1
+    fi
+
+    sha=$(shasum -a 256 "$tmp_archive" | awk '{print $1}')
+    echo "sha256: ${sha}"
+
+    # Update url and sha256 (only one of each in simple formulas)
+    sed -i '' "s|^\\([[:space:]]*url \\)\".*\"|\\1\"${archive_url}\"|" "$formula_file"
+    sed -i '' "s|^\\([[:space:]]*sha256 \\)\".*\"|\\1\"${sha}\"|" "$formula_file"
+
+else
+    # --- Multi-arch formula (platform-specific binaries) ---
+    echo "Multi-arch formula (${url_count} urls)"
+
+    # Extract current version from 'version "X.Y.Z"' line
+    old_version=$(grep -m1 '^[[:space:]]*version ' "$formula_file" | sed 's/.*"\(.*\)".*/\1/')
+    if [[ -z "$old_version" ]]; then
+        echo "Error: multi-arch formula missing version line" >&2
+        exit 1
+    fi
+    echo "Updating ${old_version} → ${version}"
+
+    # Update the version line
+    sed -i '' "s|^\\([[:space:]]*version \\)\".*\"|\\1\"${version}\"|" "$formula_file"
+
+    # Update tags in URL lines (the hardcoded tag path, not #{version})
+    sed -i '' "s|/download/v${old_version}/|/download/v${version}/|g" "$formula_file"
+
+    # Temp dir for downloads
+    tmp_dir=$(mktemp -d "/tmp/${formula_name}-XXXXXX")
+    trap 'rm -rf "$tmp_dir"' EXIT
+
+    # Process each url line: resolve #{version}, download, hash, update sha in-place
+    idx=0
+    while IFS= read -r raw_line; do
+        idx=$((idx + 1))
+
+        # Extract URL from between quotes
+        raw_url=$(echo "$raw_line" | sed 's/.*url "\(.*\)".*/\1/')
+
+        # Resolve #{version} to get the actual download URL
+        resolved_url=$(echo "$raw_url" | sed "s/#{version}/${version}/g")
+
+        # Derive arch label from filename for display and line matching
+        filename="${resolved_url##*/}"
+        arch_label="${filename%.tar.gz}"
+        arch_label="${arch_label#"${formula_name}-${version}-"}"
+
+        echo ""
+        echo "[${idx}/${url_count}] ${arch_label}"
+
+        tmp_file="${tmp_dir}/${arch_label}.tar.gz"
+        echo "  Downloading ..."
+        if ! curl -fsSL -o "$tmp_file" "$resolved_url"; then
+            echo "  Error: download failed for ${arch_label}" >&2
+            echo "  URL: ${resolved_url}" >&2
+            exit 1
+        fi
+
+        sha=$(shasum -a 256 "$tmp_file" | awk '{print $1}')
+        echo "  sha256: ${sha}"
+
+        # Find this url's line number by arch label, then update the sha256 on the next line
+        formula_line=$(grep -n "${arch_label}" "$formula_file" | grep 'url' | head -1 | cut -d: -f1)
+        sha_line=$((formula_line + 1))
+        sed -i '' "${sha_line}s|sha256 \".*\"|sha256 \"${sha}\"|" "$formula_file"
+
+    done < <(grep '^[[:space:]]*url ' "$formula_file")
+fi
 
 echo ""
 echo "Updated ${formula_file}:"
-grep -E '^\s*(url|sha256) ' "$formula_file"
+grep -nE '^[[:space:]]*(version|url|sha256) ' "$formula_file"
 
-# Commit and push
-cd "$SCRIPT_DIR"
-git add "Formula/${formula_name}.rb"
-git commit -m "feat(${formula_name}): bump to ${version}"
-git push origin main
+# Write commit message
+cat > "${SCRIPT_DIR}/commit.txt" <<EOF
+feat(${formula_name}): bump to ${version}
+EOF
 
 echo ""
-echo "Done. Install/upgrade with:"
+echo "commit.txt written — review and run: gtxt"
+echo ""
+echo "Install/upgrade with:"
 echo "  brew upgrade ${formula_name}  # or: brew install claylo/tap/${formula_name}"
