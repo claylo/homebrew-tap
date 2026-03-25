@@ -6,6 +6,7 @@ class BitoLint < Formula
   homepage "https://github.com/claylo/bito-lint"
   version "0.3.0"
   license "Apache-2.0 OR MIT"
+  deprecate! date: "2026-03-25", because: "renamed to bito", replacement_formula: "bito"
 
   on_macos do
     if Hardware::CPU.arm?
