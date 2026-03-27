@@ -1,8 +1,8 @@
 class Navel < Formula
   desc "Introspection toolkit for examining Claude Code internals"
   homepage "https://github.com/claylo/navel"
-  url "https://github.com/claylo/navel/archive/refs/tags/v1.1.0.tar.gz"
-  sha256 "f8e0d55c5e400c8faa59bd5c292cd587ed3dcd7a5736746b2e5c952a58c31f7d"
+  url "https://github.com/claylo/navel/archive/refs/tags/v1.2.0.tar.gz"
+  sha256 "dc1668068bfdc127ff512a37b7c5bf4a65725df334997ea1d10ee38935ecf77f"
   license "MIT"
 
   depends_on "jq"
