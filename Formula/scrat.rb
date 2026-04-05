@@ -4,25 +4,25 @@
 class Scrat < Formula
   desc "Release management tooling focused on sanity retention"
   homepage "https://github.com/claylo/scrat"
-  version "0.1.0"
+  version "0.1.1"
   license "Apache-2.0 OR MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/claylo/scrat/releases/download/v0.1.0/scrat-#{version}-aarch64-apple-darwin.tar.gz"
+      url "https://github.com/claylo/scrat/releases/download/v0.1.1/scrat-#{version}-aarch64-apple-darwin.tar.gz"
       sha256 ""
     else
-      url "https://github.com/claylo/scrat/releases/download/v0.1.0/scrat-#{version}-x86_64-apple-darwin.tar.gz"
+      url "https://github.com/claylo/scrat/releases/download/v0.1.1/scrat-#{version}-x86_64-apple-darwin.tar.gz"
       sha256 ""
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/claylo/scrat/releases/download/v0.1.0/scrat-#{version}-aarch64-unknown-linux-gnu.tar.gz"
+      url "https://github.com/claylo/scrat/releases/download/v0.1.1/scrat-#{version}-aarch64-unknown-linux-gnu.tar.gz"
       sha256 ""
     else
-      url "https://github.com/claylo/scrat/releases/download/v0.1.0/scrat-#{version}-x86_64-unknown-linux-gnu.tar.gz"
+      url "https://github.com/claylo/scrat/releases/download/v0.1.1/scrat-#{version}-x86_64-unknown-linux-gnu.tar.gz"
       sha256 ""
     end
   end
